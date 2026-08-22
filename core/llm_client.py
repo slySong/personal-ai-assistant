@@ -1,7 +1,7 @@
-"""LLM 客户端封装：基于 OpenAI SDK 指向本地 Ollama，支持流式输出与 tool_calls 分片累积。
+"""LLM 客户端封装：基于 OpenAI SDK 指向 DeepSeek API，支持流式输出与 tool_calls 分片累积。
 
 关键设计：
-- gpt-oss 是推理模型，流式响应中 reasoning 字段位置因 Ollama 版本而异，
+- 兼容推理模型的 reasoning 字段（如 deepseek-reasoner 的思考内容），
   本客户端兼容 delta.reasoning / delta.reasoning_content 两种位置。
 - OpenAI SDK 流式时 delta.tool_calls 按 index 分片到达（id 只在首片，
   arguments 字符串分多片拼接），需在客户端内累积后上报完整 tool_calls。
@@ -32,7 +32,7 @@ class StreamChunk:
 
 
 class LLMClient:
-    """封装 OpenAI SDK 指向本地 Ollama 的客户端。"""
+    """封装 OpenAI SDK 指向 DeepSeek API 的客户端。"""
 
     def __init__(self, cfg: LLMConfig):
         self.cfg = cfg
@@ -55,7 +55,7 @@ class LLMClient:
             return None
 
     def is_reachable(self) -> bool:
-        """探活后端服务。用 OpenAI 兼容的 GET /models（Ollama、DeepSeek 通用）。"""
+        """探活后端服务。用 OpenAI 兼容的 GET /models（DeepSeek 等 OpenAI 兼容后端通用）。"""
         return self._auth_get("/models") is not None
 
     def list_models(self) -> list[str]:
@@ -72,8 +72,8 @@ class LLMClient:
     ) -> Iterator[StreamChunk]:
         """流式对话。产出 StreamChunk 序列。
 
-        gpt-oss 的 reasoning 通过兼容层处理：检查 delta.reasoning 和
-        delta.reasoning_content 两个字段（不同 Ollama 版本位置不同）。
+        推理模型的 reasoning 通过兼容层处理：检查 delta.reasoning 和
+        delta.reasoning_content 两个字段（不同后端版本位置不同）。
         tool_calls 按 index 累积分片，流结束后通过 done 分片上报 finish_reason。
         """
         kwargs: dict = {
@@ -101,9 +101,9 @@ class LLMClient:
             if choice.finish_reason:
                 finish_reason = choice.finish_reason
 
-            # 1. reasoning 字段（gpt-oss CoT）——兼容两种位置
+            # 1. reasoning 字段（推理模型 CoT）——兼容两种位置
             reasoning_text = ""
-            # 用 getattr 兼容 SDK 版本差异（reasoning 是 Ollama 扩展字段）
+            # 用 getattr 兼容 SDK 版本差异（reasoning 是部分推理模型的扩展字段）
             reasoning_text = getattr(delta, "reasoning", None) or ""
             if not reasoning_text:
                 reasoning_text = getattr(delta, "reasoning_content", None) or ""
@@ -164,9 +164,9 @@ class LLMClient:
 # 测试探活与连通性的独立入口
 if __name__ == "__main__":
     cfg = LLMConfig()
-    cfg.model = "qwen3:8b"  # 开发期快速验证用
+    cfg.model = "deepseek-chat"
     client = LLMClient(cfg)
-    print(f"Ollama 可达: {client.is_reachable()}")
+    print(f"DeepSeek 可达: {client.is_reachable()}")
     print(f"已安装模型: {client.list_models()}")
     print("--- 流式测试 ---")
     for chunk in client.chat_stream([{"role": "user", "content": "你好，请用一句话介绍你自己"}]):

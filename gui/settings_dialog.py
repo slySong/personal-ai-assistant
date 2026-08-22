@@ -1,4 +1,4 @@
-"""设置对话框：Ollama 地址、模型、温度、沙箱、超时等。
+"""设置对话框：DeepSeek API 地址、模型、温度、沙箱、超时等。
 
 保存后更新 AppConfig 并持久化到 config.json。
 模型切换会触发主窗口重建 Agent。
@@ -50,7 +50,7 @@ class SettingsDialog(QDialog):
         # API Key（DeepSeek 等云端服务需要）
         self.key_edit = QLineEdit()
         self.key_edit.setEchoMode(QLineEdit.EchoMode.Password)
-        self.key_edit.setPlaceholderText("本地 Ollama 可留空")
+        self.key_edit.setPlaceholderText("请填写 DeepSeek API Key")
         form.addRow("API Key：", self.key_edit)
 
         # 模型选择（下拉 + 刷新）

@@ -45,22 +45,9 @@ if errorlevel 1 (
     exit /b 1
 )
 
-REM 检查 Ollama 是否运行
+REM 本应用连接 DeepSeek 云端 API，无需本地服务
 echo.
-echo [检查] Ollama 服务...
-python -c "import urllib.request; urllib.request.urlopen('http://localhost:11434/api/tags', timeout=3)" 2>nul
-if errorlevel 1 (
-    echo [警告] Ollama 未运行！请先启动：
-    echo   1. 安装：https://ollama.com/download
-    echo   2. 启动服务：ollama serve
-    echo   3. 拉取模型：ollama pull gpt-oss:20b
-    echo.
-    echo 应用仍会启动，但状态栏会显示未连接。
-    echo.
-    timeout /t 3 >nul
-) else (
-    echo [OK] Ollama 服务已运行
-)
+echo [说明] 使用 DeepSeek 云端 API（请在应用设置中填写 API Key）
 
 REM 启动 GUI
 echo.

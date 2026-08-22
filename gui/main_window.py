@@ -92,11 +92,11 @@ class MainWindow(QMainWindow):
         self._init_status()
 
         # 启动时探活
-        QTimer.singleShot(100, self._check_ollama)
+        QTimer.singleShot(100, self._check_backend)
         # 定期探活（每 30 秒）
         self._health_timer = QTimer(self)
         self._health_timer.setInterval(30000)
-        self._health_timer.timeout.connect(self._check_ollama)
+        self._health_timer.timeout.connect(self._check_backend)
         self._health_timer.start()
 
         # 初始化会话
@@ -148,7 +148,7 @@ class MainWindow(QMainWindow):
         file_menu.addAction("退出", self.close, "Ctrl+Q")
 
         set_menu = menubar.addMenu("设置(&S)")
-        set_menu.addAction("Ollama 设置...", self._open_settings)
+        set_menu.addAction("API 设置...", self._open_settings)
         set_menu.addSeparator()
         set_menu.addAction("切换深色/浅色主题", self._toggle_theme)
 
@@ -158,22 +158,22 @@ class MainWindow(QMainWindow):
     def _init_status(self) -> None:
         self.status = QStatusBar()
         self.setStatusBar(self.status)
-        self.ollama_label = QLabel("● 检查中...")
+        self.backend_label = QLabel("● 检查中...")
         self.model_label = QLabel(f"模型: {self.llm_cfg.model}")
-        self.status.addWidget(self.ollama_label)
+        self.status.addWidget(self.backend_label)
         self.status.addPermanentWidget(self.model_label)
 
-    # ---- Ollama 探活 ----
+    # ---- 后端探活 ----
 
     @Slot()
-    def _check_ollama(self) -> None:
+    def _check_backend(self) -> None:
         client = LLMClient(self.llm_cfg)
         if client.is_reachable():
-            self.ollama_label.setText("● 后端已连接")
-            self.ollama_label.setStyleSheet("color: green;")
+            self.backend_label.setText("● 后端已连接")
+            self.backend_label.setStyleSheet("color: green;")
         else:
-            self.ollama_label.setText("● 后端未连接")
-            self.ollama_label.setStyleSheet("color: red;")
+            self.backend_label.setText("● 后端未连接")
+            self.backend_label.setStyleSheet("color: red;")
 
     # ---- 会话管理 ----
 
@@ -396,7 +396,7 @@ class MainWindow(QMainWindow):
                 self.memory_panel.memory = self.agent.memory
                 self._refresh_sessions()
                 self._refresh_memory()
-            self._check_ollama()
+            self._check_backend()
 
     def _show_about(self) -> None:
         QMessageBox.about(

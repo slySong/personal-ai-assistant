@@ -1,4 +1,4 @@
-"""Agent 循环：基于 gpt-oss 原生 tool calling 的多步推理。
+"""Agent 循环：基于 DeepSeek 原生 tool calling 的多步推理。
 
 核心流程：
   装配 system prompt（人设 + 用户偏好注入）
@@ -11,9 +11,9 @@
                    → tool 结果以 role=tool 回传
                    → 循环回流式调用，max_iterations 防死循环
 
-gpt-oss 是推理模型，tool calling 伴随 CoT reasoning。reasoning 通过
-单独事件类型上报（UI 折叠显示），assistant 消息回填时如有 reasoning
-则附加到 content，保证后续轮次上下文完整。
+当使用推理模型（如 deepseek-reasoner）时，tool calling 伴随 CoT reasoning。
+reasoning 通过单独事件类型上报（UI 折叠显示），assistant 消息回填时如有
+reasoning 则附加到 content，保证后续轮次上下文完整。
 """
 from __future__ import annotations
 
@@ -184,7 +184,7 @@ class Agent:
                 return final_answer
 
             # 5. 有 tool_calls：回填 assistant 消息
-            # gpt-oss CoT：如有 reasoning，附加到 content 保证上下文完整
+            # 推理模型 CoT：如有 reasoning，附加到 content 保证上下文完整
             assistant_content = content_buf
             if not assistant_content and reasoning_buf:
                 # 无 content 时用 reasoning 摘要作为 content（部分 API 要求 content 非空）

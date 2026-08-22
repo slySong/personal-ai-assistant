@@ -19,14 +19,13 @@ SANDBOX_DIR = DATA_DIR / "sandbox"
 class LLMConfig:
     """LLM 后端配置（OpenAI 兼容 API）。
 
-    默认指向 DeepSeek 云端 API。也可切换回本地 Ollama：
-    base_url="http://localhost:11434/v1"，api_key="ollama"（Ollama 忽略）。
+    连接 DeepSeek 云端 API（https://api.deepseek.com/v1）。
     注意：DeepSeek 的 deepseek-reasoner（R1）不支持工具调用，
     接本助手必须用 deepseek-chat（V3）。
     """
     base_url: str = "https://api.deepseek.com/v1"
     api_key: str = ""  # 在设置里填写（https://platform.deepseek.com 申请）
-    model: str = "deepseek-chat"  # 支持工具调用；本地 Ollama 可切 gpt-oss:20b
+    model: str = "deepseek-chat"  # 支持工具调用
     temperature: float = 0.6
     max_tokens: int = 4096
     timeout: int = 180  # 网络请求超时

@@ -4,7 +4,7 @@
 # GUI 桌面框架
 PySide6>=6.6.0
 
-# LLM 客户端（指向本地 Ollama 的 OpenAI 兼容 API）
+# LLM 客户端（连接 DeepSeek API 的 OpenAI 兼容接口）
 openai>=1.40.0
 
 # 联网搜索（DuckDuckGo，已从 duckduckgo-search 更名为 ddgs）

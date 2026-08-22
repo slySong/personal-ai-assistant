@@ -60,9 +60,9 @@ def cli_confirm(name: str, args: dict) -> bool:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="私人 AI 助手 CLI")
-    parser.add_argument("--model", default=None, help="覆盖模型名，如 qwen3:8b / gpt-oss:20b")
+    parser.add_argument("--model", default=None, help="覆盖模型名，如 deepseek-chat")
     parser.add_argument("--show-reasoning", action="store_true", help="显示推理过程")
-    parser.add_argument("--base-url", default=None, help="覆盖 Ollama API 地址")
+    parser.add_argument("--base-url", default=None, help="覆盖 DeepSeek API 地址（base_url）")
     parser.add_argument("--new-session", action="store_true", help="新建会话（不复用最近的）")
     args = parser.parse_args()
 
@@ -84,7 +84,7 @@ def main() -> int:
         print("\n[错误] 无法连接后端服务。请确认：")
         print(f"  1. API 地址正确：{llm_cfg.base_url}")
         print("  2. API Key 已填写且有效（云端服务）")
-        print("  3. 本地 Ollama 需已运行：执行 'ollama serve'")
+        print("  3. 网络可达 DeepSeek 服务")
         return 1
 
     models = tmp_client.list_models()
