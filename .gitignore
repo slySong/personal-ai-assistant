@@ -1,0 +1,18 @@
+﻿# Python 缓存
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# 运行时数据（含 API Key、数据库、沙箱文件，严禁上传公开仓库）
+data/
+
+# 虚拟环境 / 环境变量
+.venv/
+venv/
+.env
+
+# IDE 与备份
+.idea/
+.vscode/
+*.bak

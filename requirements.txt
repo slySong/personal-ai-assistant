@@ -1,0 +1,23 @@
+# 私人定制 AI 助手 - Python 依赖
+# 要求 Python 3.11+（conda create -n ai_assistant python=3.11）
+
+# GUI 桌面框架
+PySide6>=6.6.0
+
+# LLM 客户端（指向本地 Ollama 的 OpenAI 兼容 API）
+openai>=1.40.0
+
+# 联网搜索（DuckDuckGo，已从 duckduckgo-search 更名为 ddgs）
+ddgs>=7.0.0
+
+# Markdown 渲染 + 代码高亮
+markdown>=3.5
+pygments>=2.17
+
+# 开发/测试（可选）
+pytest>=8.0
+
+# Office 文档支持（Word / PPT / Excel 文本读写）
+python-docx>=1.1.0
+python-pptx>=0.6.23
+openpyxl>=3.1.2
