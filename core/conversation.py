@@ -98,13 +98,16 @@ class ConversationStore:
             return cur.lastrowid
 
     def get_messages(self, session_id: int, limit: int = 100) -> list[dict]:
+        """读取会话最近的 limit 条消息，按时间从旧到新返回。"""
         with self._conn() as c:
             rows = c.execute(
                 "SELECT role, content, tool_calls, tool_call_id FROM messages "
-                "WHERE session_id = ? ORDER BY id ASC LIMIT ?",
+                "WHERE session_id = ? ORDER BY id DESC LIMIT ?",
                 (session_id, limit),
             ).fetchall()
-        return [dict(r) for r in rows]
+        msgs = [dict(r) for r in rows]
+        msgs.reverse()
+        return msgs
 
     def list_sessions(self) -> list[dict]:
         with self._conn() as c:
@@ -118,6 +121,11 @@ class ConversationStore:
         with self._conn() as c:
             c.execute("DELETE FROM messages WHERE session_id = ?", (session_id,))
             c.execute("DELETE FROM sessions WHERE id = ?", (session_id,))
+
+    def clear_session(self, session_id: int) -> None:
+        """清空会话的所有消息（保留会话本身）。"""
+        with self._conn() as c:
+            c.execute("DELETE FROM messages WHERE session_id = ?", (session_id,))
 
     def update_session_title(self, session_id: int, title: str) -> None:
         with self._conn() as c:

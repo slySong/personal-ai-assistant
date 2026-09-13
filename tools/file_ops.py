@@ -1,14 +1,15 @@
 """文件操作工具：读、写、列目录。
 
 路径策略：
-- 绝对路径直接放行，可自由访问电脑上任意位置的文件。
-- 相对路径仍相对于沙箱目录解析，作为默认的安全行为。
+- 非可信模式（默认）：绝对路径拒绝，只能访问沙箱目录内。
+- 可信模式（trusted_mode=True）：绝对路径放行，可访问电脑任意位置。
+- 相对路径始终相对于沙箱目录解析。
 
 内容策略：
 - read_file 对 .docx / .pptx / .xlsx 会提取其中的文本内容，
   其余文件按 UTF-8 文本读取。
 - write_file 对 .docx 采用「追加段落」，其余按文本覆盖写入。
-写操作需用户确认。
+写操作在非可信模式下需用户确认。
 """
 from __future__ import annotations
 
@@ -25,11 +26,11 @@ class SecurityError(Exception):
     """路径越界等安全违规。"""
 
 
-def _resolve_path(path_text: str, sandbox_root: Path) -> Path:
-    """解析目标路径：绝对路径放行，相对路径禁锢在沙箱内。
+def _resolve_path(path_text: str, sandbox_root: Path, trusted: bool = False) -> Path:
+    """解析目标路径。
 
     - path_text 为空或 "." 返回 sandbox_root 本身
-    - 绝对路径（Windows 盘符 / UNC）直接 resolve 返回，不受沙箱限制
+    - 绝对路径：可信模式放行，非可信模式（默认）拒绝
     - 相对路径解析后必须位于 sandbox_root 之下（Windows 不区分大小写）
     """
     if not path_text or path_text in (".", "./"):
@@ -37,6 +38,8 @@ def _resolve_path(path_text: str, sandbox_root: Path) -> Path:
 
     p = Path(path_text)
     if p.is_absolute():
+        if not trusted:
+            raise SecurityError(f"非可信模式禁止绝对路径，只能访问沙箱目录：{path_text}")
         return p.resolve()
 
     base = sandbox_root.resolve()
@@ -96,7 +99,7 @@ class ReadFileTool(Tool):
     name = "read_file"
     description = (
         "读取指定文件的内容。支持 Word(.docx)、PPT(.pptx)、Excel(.xlsx) 提取文本，"
-        "也支持普通文本文件。可传绝对路径访问电脑任意位置"
+        "也支持普通文本文件。可信模式下可传绝对路径访问电脑任意位置"
         "（如 C:\\Users\\...\\a.docx），也可传相对路径访问沙箱目录。大文件会被截断。"
     )
     parameters = {
@@ -104,7 +107,7 @@ class ReadFileTool(Tool):
         "properties": {
             "path": {
                 "type": "string",
-                "description": "文件路径：绝对路径（如 C:\\Users\\...\\a.docx）或相对沙箱根的路径",
+                "description": "文件路径：相对沙箱根的路径，或可信模式下的绝对路径",
             },
             "max_bytes": {
                 "type": "integer",
@@ -116,10 +119,11 @@ class ReadFileTool(Tool):
 
     def __init__(self, sandbox_cfg: SandboxConfig):
         self.sandbox_root = Path(sandbox_cfg.root_dir)
+        self.trusted = sandbox_cfg.trusted_mode
 
     def execute(self, path: str, max_bytes: int = 200000) -> ToolResult:
         try:
-            target = _resolve_path(path, self.sandbox_root)
+            target = _resolve_path(path, self.sandbox_root, self.trusted)
         except SecurityError as e:
             return ToolResult(ok=False, output=str(e))
 
@@ -148,15 +152,14 @@ class WriteFileTool(Tool):
     name = "write_file"
     description = (
         "写入文件内容。对 .docx 采用「追加段落」（在文档末尾新增段落），"
-        "其余文件按文本覆盖写入。可传绝对路径写到电脑任意位置。此操作需要用户确认。"
+        "其余文件按文本覆盖写入。可信模式下可传绝对路径写到电脑任意位置。此操作需用户确认。"
     )
-    requires_confirmation = True
     parameters = {
         "type": "object",
         "properties": {
             "path": {
                 "type": "string",
-                "description": "文件路径：绝对路径（如 C:\\Users\\...\\a.docx）或相对沙箱根的路径",
+                "description": "文件路径：相对沙箱根的路径，或可信模式下的绝对路径",
             },
             "content": {
                 "type": "string",
@@ -168,10 +171,12 @@ class WriteFileTool(Tool):
 
     def __init__(self, sandbox_cfg: SandboxConfig):
         self.sandbox_root = Path(sandbox_cfg.root_dir)
+        self.trusted = sandbox_cfg.trusted_mode
+        self.requires_confirmation = not sandbox_cfg.trusted_mode
 
     def execute(self, path: str, content: str) -> ToolResult:
         try:
-            target = _resolve_path(path, self.sandbox_root)
+            target = _resolve_path(path, self.sandbox_root, self.trusted)
         except SecurityError as e:
             return ToolResult(ok=False, output=str(e))
 
@@ -207,7 +212,7 @@ class WriteFileTool(Tool):
 class ListFilesTool(Tool):
     name = "list_files"
     description = (
-        "列出指定目录下的文件和文件夹。可传绝对路径查看电脑任意目录"
+        "列出指定目录下的文件和文件夹。可信模式下可传绝对路径查看电脑任意目录"
         "（如 C:\\Users\\...\\Desktop），不传 path 时列出沙箱根目录。"
     )
     parameters = {
@@ -215,7 +220,7 @@ class ListFilesTool(Tool):
         "properties": {
             "path": {
                 "type": "string",
-                "description": "目录路径：绝对路径（如 C:\\Users\\...\\Desktop）或相对沙箱根的路径，默认为沙箱根目录",
+                "description": "目录路径：相对沙箱根的路径（默认为沙箱根），或可信模式下的绝对路径",
             },
         },
         "required": [],
@@ -223,10 +228,11 @@ class ListFilesTool(Tool):
 
     def __init__(self, sandbox_cfg: SandboxConfig):
         self.sandbox_root = Path(sandbox_cfg.root_dir)
+        self.trusted = sandbox_cfg.trusted_mode
 
     def execute(self, path: str = ".") -> ToolResult:
         try:
-            target = _resolve_path(path, self.sandbox_root)
+            target = _resolve_path(path, self.sandbox_root, self.trusted)
         except SecurityError as e:
             return ToolResult(ok=False, output=str(e))
 

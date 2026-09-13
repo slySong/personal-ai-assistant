@@ -1,4 +1,4 @@
-"""工具系统测试：路径禁锢、危险命令拦截、文件/代码执行。"""
+"""工具系统测试：路径解析、危险命令拦截、文件/代码执行。"""
 import pytest
 from config import SandboxConfig
 from tools.file_ops import (
@@ -6,7 +6,7 @@ from tools.file_ops import (
     ReadFileTool,
     SecurityError,
     WriteFileTool,
-    _safe_path,
+    _resolve_path,
 )
 from tools.code_exec import (
     ExecCommandTool,
@@ -15,31 +15,36 @@ from tools.code_exec import (
 )
 
 
-# ---- 路径禁锢 ----
+# ---- 路径解析 ----
 
-def test_safe_path_normal(tmp_path):
-    p = _safe_path("sub/file.txt", tmp_path)
+def test_resolve_path_normal(tmp_path):
+    p = _resolve_path("sub/file.txt", tmp_path)
     assert str(p).startswith(str(tmp_path))
 
 
-def test_safe_path_root(tmp_path):
-    p = _safe_path(".", tmp_path)
+def test_resolve_path_root(tmp_path):
+    p = _resolve_path(".", tmp_path)
     assert p == tmp_path.resolve()
 
 
-def test_safe_path_rejects_dotdot(tmp_path):
+def test_resolve_path_rejects_dotdot(tmp_path):
     with pytest.raises(SecurityError):
-        _safe_path("../../etc/passwd", tmp_path)
+        _resolve_path("../../etc/passwd", tmp_path)
 
 
-def test_safe_path_rejects_absolute_windows(tmp_path):
+def test_resolve_path_rejects_absolute_by_default(tmp_path):
     with pytest.raises(SecurityError):
-        _safe_path("C:\\Windows\\system32", tmp_path)
+        _resolve_path("C:\\Windows\\system32", tmp_path)
 
 
-def test_safe_path_rejects_unc(tmp_path):
+def test_resolve_path_allows_absolute_when_trusted(tmp_path):
+    p = _resolve_path("C:\\Windows\\system32", tmp_path, trusted=True)
+    assert p.is_absolute()
+
+
+def test_resolve_path_rejects_unc_by_default(tmp_path):
     with pytest.raises(SecurityError):
-        _safe_path("\\\\server\\share", tmp_path)
+        _resolve_path("\\\\server\\share", tmp_path)
 
 
 # ---- 危险命令检测 ----
@@ -180,19 +185,31 @@ def test_exec_command_safe(tmp_path):
 
 
 def test_exec_command_requires_confirmation():
-    """ExecCommandTool 的确认开关从配置读取，默认不弹窗。"""
+    """非可信模式下 shell 命令默认需要确认。"""
     from config import SandboxConfig
     cfg = SandboxConfig(root_dir=".")
+    tool = ExecCommandTool(cfg)
+    assert tool.requires_confirmation is True
+
+
+def test_exec_command_no_confirmation_when_trusted():
+    """可信模式下 shell 命令不需要确认。"""
+    from config import SandboxConfig
+    cfg = SandboxConfig(root_dir=".", trusted_mode=True)
     tool = ExecCommandTool(cfg)
     assert tool.requires_confirmation is False
 
 
-def test_exec_command_confirmation_enabled():
-    """confirm_shell_commands=True 时 shell 命令需要确认。"""
-    from config import SandboxConfig
-    cfg = SandboxConfig(root_dir=".", confirm_shell_commands=True)
-    tool = ExecCommandTool(cfg)
-    assert tool.requires_confirmation is True
+def test_write_file_requires_confirmation_default():
+    """非可信模式下写文件需要确认。"""
+    cfg = SandboxConfig(root_dir=".")
+    assert WriteFileTool(cfg).requires_confirmation is True
+
+
+def test_write_file_no_confirmation_when_trusted():
+    """可信模式下写文件不需要确认。"""
+    cfg = SandboxConfig(root_dir=".", trusted_mode=True)
+    assert WriteFileTool(cfg).requires_confirmation is False
 
 
 def test_exec_python_no_confirmation():

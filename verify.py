@@ -106,24 +106,26 @@ print("工具系统测试")
 print("=" * 50)
 
 from config import SandboxConfig
-from tools.file_ops import _safe_path, ReadFileTool, WriteFileTool, ListFilesTool, SecurityError
+from tools.file_ops import _resolve_path, ReadFileTool, WriteFileTool, ListFilesTool, SecurityError
 from tools.code_exec import _is_dangerous, ExecPythonTool, ExecCommandTool
 
 with tempfile.TemporaryDirectory() as tmp:
     tmp = Path(tmp)
 
-    # 路径禁锢
-    check("safe_path正常", str(_safe_path("sub/file.txt", tmp)).startswith(str(tmp)))
+    # 路径解析
+    check("resolve_path正常", str(_resolve_path("sub/file.txt", tmp)).startswith(str(tmp)))
     try:
-        _safe_path("../../etc/passwd", tmp)
-        check("safe_path拒绝..", False, "未抛异常")
+        _resolve_path("../../etc/passwd", tmp)
+        check("resolve_path拒绝..", False, "未抛异常")
     except SecurityError:
-        check("safe_path拒绝..", True)
+        check("resolve_path拒绝..", True)
     try:
-        _safe_path("C:\\Windows\\system32", tmp)
-        check("safe_path拒绝绝对路径", False, "未抛异常")
+        _resolve_path("C:\\Windows\\system32", tmp)
+        check("resolve_path拒绝绝对路径(默认)", False, "未抛异常")
     except SecurityError:
-        check("safe_path拒绝绝对路径", True)
+        check("resolve_path拒绝绝对路径(默认)", True)
+    p = _resolve_path("C:\\Windows\\system32", tmp, trusted=True)
+    check("resolve_path允许绝对路径(可信)", p.is_absolute())
 
     # 危险命令检测
     check("检测del", _is_dangerous("del C:\\important.txt") is not None)
@@ -170,8 +172,10 @@ with tempfile.TemporaryDirectory() as tmp:
     result = cmd_tool.execute(command="echo hello_test")
     check("安全命令执行", result.ok and "hello_test" in result.output)
 
-    # 确认标志（默认不弹窗，可配置开启）
-    check("shell默认不确认", cmd_tool.requires_confirmation is False)
+    # 确认标志（非可信模式默认需确认，可信模式免确认）
+    check("shell默认需确认", cmd_tool.requires_confirmation is True)
+    cmd_trusted = ExecCommandTool(SandboxConfig(root_dir=str(tmp), trusted_mode=True))
+    check("shell可信免确认", cmd_trusted.requires_confirmation is False)
     check("Python无需确认", py_tool.requires_confirmation is False)
 
 

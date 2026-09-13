@@ -38,7 +38,7 @@ class SandboxConfig:
     root_dir: str = str(SANDBOX_DIR)
     exec_timeout: int = 30  # 子进程超时秒数
     max_output_chars: int = 5000  # 输出截断长度
-    confirm_shell_commands: bool = False  # shell 命令执行是否需要弹窗确认（危险命令始终拦截）
+    trusted_mode: bool = False  # 可信模式：允许绝对路径、写文件/命令免确认
 
 
 @dataclass
@@ -101,5 +101,5 @@ def _from_dict(data: dict[str, Any]) -> AppConfig:
         agent=AgentConfig(**data.get("agent", {})),
         window_width=data.get("window_width", 1200),
         window_height=data.get("window_height", 800),
-        theme=data.get("theme", "light"),
+        theme=data.get("theme", "dark"),
     )

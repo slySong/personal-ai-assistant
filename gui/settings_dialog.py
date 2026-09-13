@@ -9,6 +9,7 @@ from typing import Optional
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
+    QCheckBox,
     QComboBox,
     QDialog,
     QDialogButtonBox,
@@ -94,6 +95,10 @@ class SettingsDialog(QDialog):
         self.extract_spin.setSuffix(" 轮")
         form.addRow("LLM 偏好提取间隔：", self.extract_spin)
 
+        # 可信模式
+        self.trusted_check = QCheckBox("允许绝对路径访问，写文件/执行命令不再弹窗确认（谨慎开启）")
+        form.addRow("可信模式：", self.trusted_check)
+
         layout.addLayout(form)
 
         # 状态标签（显示刷新模型结果）
@@ -117,6 +122,7 @@ class SettingsDialog(QDialog):
         self.sandbox_edit.setText(self.app_cfg.sandbox.root_dir)
         self.timeout_spin.setValue(self.app_cfg.sandbox.exec_timeout)
         self.extract_spin.setValue(self.app_cfg.memory.llm_extract_interval)
+        self.trusted_check.setChecked(self.app_cfg.sandbox.trusted_mode)
         self._refresh_models(select_current=self.llm_cfg.model)
 
     def _refresh_models(self, select_current: Optional[str] = None) -> None:
@@ -164,6 +170,7 @@ class SettingsDialog(QDialog):
 
         self.app_cfg.sandbox.root_dir = self.sandbox_edit.text().strip()
         self.app_cfg.sandbox.exec_timeout = self.timeout_spin.value()
+        self.app_cfg.sandbox.trusted_mode = self.trusted_check.isChecked()
         self.app_cfg.memory.llm_extract_interval = self.extract_spin.value()
 
         self.app_cfg.save()

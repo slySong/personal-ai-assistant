@@ -26,12 +26,12 @@ from core.conversation import ConversationStore
 from tools.base import ToolRegistry
 
 
-BASE_SYSTEM_PROMPT = """你是用户的私人 AI 助手，运行在用户本地机器上，完全离线。
+BASE_SYSTEM_PROMPT = """你是用户的私人 AI 助手。由 DeepSeek 云端 AI 驱动，对话与偏好数据保存在本机。
 
 你的能力：
 - 自然语言对话，友好、简洁、实用
-- 文件读写：在沙箱目录内读取、写入、列出文件
-- 代码执行：运行 Python 脚本或 shell 命令（shell 需用户确认）
+- 文件读写：读取、写入、列出文件（相对路径在沙箱内，绝对路径可访问任意位置）
+- 代码执行：运行 Python 脚本或 shell 命令（危险命令自动拦截）
 - 联网搜索：用 DuckDuckGo 查询实时信息
 
 行为准则：

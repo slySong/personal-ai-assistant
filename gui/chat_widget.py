@@ -183,6 +183,11 @@ class ChatWidget(QWidget):
         self._messages.append(ChatMessage(role="user", content=text))
         self._mark_dirty()
 
+    def append_assistant(self, text: str) -> None:
+        """追加一条完整的助手消息（用于加载历史等非流式场景）。"""
+        self._messages.append(ChatMessage(role="assistant", content=text))
+        self._mark_dirty()
+
     def start_assistant(self) -> None:
         """开始一条新的助手消息（流式）。"""
         self._messages.append(ChatMessage(role="assistant", content="", streaming=True))

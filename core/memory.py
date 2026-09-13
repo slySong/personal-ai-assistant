@@ -239,15 +239,16 @@ class MemoryStore:
 
         Agent 在最终答案后调用此方法。为避免阻塞 UI，LLM 提取在后台线程。
         """
-        # 1. 规则提取（即时，毫秒级）
-        new_prefs = self._extract_rules(user_input)
-        for pref in new_prefs:
-            self.upsert(pref)
-        if new_prefs:
-            self._log(
-                session_id, "extract_rule",
-                json.dumps([asdict(p) for p in new_prefs], ensure_ascii=False),
-            )
+        # 1. 规则提取（即时，毫秒级，可用 rule_extract_every_turn 关闭）
+        if self.cfg.rule_extract_every_turn:
+            new_prefs = self._extract_rules(user_input)
+            for pref in new_prefs:
+                self.upsert(pref)
+            if new_prefs:
+                self._log(
+                    session_id, "extract_rule",
+                    json.dumps([asdict(p) for p in new_prefs], ensure_ascii=False),
+                )
 
         # 2. LLM 提取（每 N 轮）
         with self._lock:

@@ -7,8 +7,7 @@
 - 危险命令黑名单（正则）拦截 rm/del/format/diskpart/shutdown/reg/taskkill 等
 - 超时控制（默认 30s）
 - 输出截断（默认 5000 字符）
-- shell 命令是否弹窗确认由 SandboxConfig.confirm_shell_commands 决定（默认不弹窗，
-  但危险命令始终直接拒绝，不进入执行）
+- shell 命令非可信模式默认弹窗确认（危险命令始终直接拒绝，不进入执行）
 """
 from __future__ import annotations
 
@@ -130,7 +129,8 @@ class ExecCommandTool(Tool):
     description = (
         "在沙箱目录内执行一条 shell 命令（cmd/powershell 自动选择），返回输出。"
         "工作目录为沙箱根。"
-        "危险命令（删除、格式化、注册表改写、关机等）会被直接拒绝。"
+        "危险命令（删除、格式化、注册表改写、关机等）会被直接拒绝；"
+        "非可信模式下执行前需用户确认。"
     )
     parameters = {
         "type": "object",
@@ -151,8 +151,8 @@ class ExecCommandTool(Tool):
         self.sandbox_root = Path(sandbox_cfg.root_dir).resolve()
         self.timeout = sandbox_cfg.exec_timeout
         self.max_output = sandbox_cfg.max_output_chars
-        # 是否弹窗确认由配置决定（默认 False，不弹窗；危险命令仍直接拒绝）
-        self.requires_confirmation = sandbox_cfg.confirm_shell_commands
+        # 非可信模式需要确认，可信模式免确认（危险命令仍直接拒绝）
+        self.requires_confirmation = not sandbox_cfg.trusted_mode
 
     def execute(self, command: str, timeout: int | None = None) -> ToolResult:
         timeout = timeout or self.timeout

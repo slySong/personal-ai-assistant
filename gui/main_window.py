@@ -220,8 +220,8 @@ class MainWindow(QMainWindow):
     def _clear_chat(self) -> None:
         if self.current_session_id is None:
             return
+        self.agent.conversation.clear_session(self.current_session_id)
         self.chat.clear_all()
-        self._refresh_memory()
 
     def _on_session_clicked(self, item: QListWidgetItem) -> None:
         if item is None:
@@ -244,10 +244,7 @@ class MainWindow(QMainWindow):
                 self.chat.append_user(content)
             elif role == "assistant":
                 if content:
-                    self.chat.append_user("")  # 占位避免
-                    self.chat._messages.pop()  # 撤销占位
-                    self.chat.append_content(content)
-                    self.chat.finish_assistant()
+                    self.chat.append_assistant(content)
                 # 解析 tool_calls 显示工具调用
                 tc = m.get("tool_calls")
                 if tc:
@@ -382,13 +379,15 @@ class MainWindow(QMainWindow):
         old_model = self.llm_cfg.model
         old_url = self.llm_cfg.base_url
         old_key = self.llm_cfg.api_key
+        old_trusted = self.app_cfg.sandbox.trusted_mode
         dlg = SettingsDialog(self.app_cfg, self.llm_cfg, self)
         if dlg.exec():
-            # 模型 / 地址 / Key 变化则重建 Agent
+            # 模型 / 地址 / Key / 可信模式 变化则重建 Agent（工具按新配置重建）
             if (
                 self.llm_cfg.model != old_model
                 or self.llm_cfg.base_url != old_url
                 or self.llm_cfg.api_key != old_key
+                or self.app_cfg.sandbox.trusted_mode != old_trusted
             ):
                 self.model_label.setText(f"模型: {self.llm_cfg.model}")
                 self.agent = build_agent(self.app_cfg, self.llm_cfg)
